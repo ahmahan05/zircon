@@ -18,7 +18,8 @@ export async function loadItems(
   if (orderIds.length === 0) return map;
   const placeholders = orderIds.map((_, i) => `$${i + 2}`).join(",");
   const rows = await sql.query<OrderItemRow>(
-    `select oi.*, wt.name as work_type_name
+    `select oi.id, oi.order_id, oi.work_type_id, wt.name as work_type_name,
+            oi.quantity, oi.unit_price, oi.created_at
      from order_items oi
      join work_types wt on wt.id = oi.work_type_id and wt.user_id = oi.user_id
      where oi.user_id = $1 and oi.order_id in (${placeholders})
@@ -49,7 +50,9 @@ export function buildWhere(filters: OrderFilters, userId: string) {
       filters.workTypeId,
     );
   }
+  let search = false;
   if (filters.q && filters.q.trim()) {
+    search = true;
     const q = `%${filters.q.trim()}%`;
     params.push(q, q, q, q);
     const a = params.length - 3;
@@ -65,7 +68,7 @@ export function buildWhere(filters: OrderFilters, userId: string) {
         ))`,
     );
   }
-  return { where: where.join(" and "), params };
+  return { where: where.join(" and "), params, search };
 }
 
 export async function queryOrders(
@@ -76,19 +79,9 @@ export async function queryOrders(
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(50, Math.max(10, filters.pageSize ?? 20));
   const { where, params } = buildWhere(filters, userId);
-  const countRows = await sql.query<{ n: number }>(
-    `select count(*)::int as n
-     from orders o
-     join doctors d on d.id = o.doctor_id and d.user_id = o.user_id
-     join patients p on p.id = o.patient_id and p.user_id = o.user_id
-     left join colors c on c.id = o.color_id and c.user_id = o.user_id
-     where ${where}`,
-    params,
-  );
-  const total = countRows[0]?.n ?? 0;
   const offset = (page - 1) * pageSize;
-  const rows = await sql.query<OrderRow>(
-    `select ${ORDER_SELECT}
+  const rows = await sql.query<OrderRow & { full_count: number }>(
+    `select ${ORDER_SELECT}, count(*) over()::int as full_count
      from orders o
      join doctors d on d.id = o.doctor_id and d.user_id = o.user_id
      join patients p on p.id = o.patient_id and p.user_id = o.user_id
@@ -98,6 +91,7 @@ export async function queryOrders(
      limit ${pageSize} offset ${offset}`,
     params,
   );
+  const total = rows[0]?.full_count ?? 0;
   const itemsMap = await loadItems(
     sql,
     rows.map((r) => r.id),
@@ -116,7 +110,12 @@ export async function queryKpis(
   filters: OrderFilters,
   userId: string,
 ): Promise<SummaryKpis> {
-  const { where, params } = buildWhere(filters, userId);
+  const { where, params, search } = buildWhere(filters, userId);
+  const nameJoins = search
+    ? `join doctors d on d.id = o.doctor_id and d.user_id = o.user_id
+       join patients p on p.id = o.patient_id and p.user_id = o.user_id
+       left join colors c on c.id = o.color_id and c.user_id = o.user_id`
+    : "";
   const rows = await sql.query<{
     orders: number;
     doctors: number;
@@ -129,9 +128,7 @@ export async function queryKpis(
         coalesce(sum(oi.quantity), 0)::int as units,
         coalesce(sum(oi.quantity * oi.unit_price), 0)::int as revenue
      from orders o
-     join doctors d on d.id = o.doctor_id and d.user_id = o.user_id
-     join patients p on p.id = o.patient_id and p.user_id = o.user_id
-     left join colors c on c.id = o.color_id and c.user_id = o.user_id
+     ${nameJoins}
      left join order_items oi on oi.order_id = o.id and oi.user_id = o.user_id
      where ${where}`,
     params,
