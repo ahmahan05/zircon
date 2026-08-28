@@ -41,6 +41,23 @@ export const THEMES = [
 ] as const;
 export type Theme = (typeof THEMES)[number];
 
+export const WALLPAPERS = [
+  "none",
+  "alpine",
+  "fjord",
+  "coast",
+  "forest",
+  "dunes",
+  "night",
+  "autumn",
+  "tuscany",
+  "glacier",
+  "lavender",
+  "waterfall",
+  "tropics",
+] as const;
+export type Wallpaper = (typeof WALLPAPERS)[number];
+
 export interface Doctor {
   id: string;
   name: string;
@@ -141,7 +158,18 @@ export interface AppSettings {
   currency: CurrencyCode;
   dateFormat: DateFormat;
   theme: Theme;
+  wallpaper: Wallpaper;
+  wallpaperOpacity: number;
 }
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  language: "ru",
+  currency: "RUB",
+  dateFormat: "dd.MM.yyyy",
+  theme: "light",
+  wallpaper: "none",
+  wallpaperOpacity: 35,
+};
 
 export interface Lookups {
   doctors: Doctor[];
