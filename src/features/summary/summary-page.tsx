@@ -8,21 +8,27 @@ import { StatCard } from "@/components/layout/stat-card";
 import { useAppState } from "@/features/app-state";
 import { FilterBar, defaultFilters, toOrderFilters, type FilterState } from "@/features/orders/filter-bar";
 import { OrderTable } from "@/features/orders/order-table";
+import { useOrderSheet } from "@/features/orders/order-sheet";
 import { getSummaryKpis, listOrders } from "@/services/orders";
 import { formatCount, money } from "@/lib/format";
+import { journalKeys } from "@/lib/query";
 
 export function SummaryPage() {
-  const { copy, settings, openCreate, openDetails } = useAppState();
+  const { copy, settings } = useAppState();
+  const openCreate = useOrderSheet((s) => s.openCreate);
+  const openDetails = useOrderSheet((s) => s.openDetails);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const queryFilters = useMemo(() => toOrderFilters(filters), [filters]);
 
   const ordersQuery = useQuery({
-    queryKey: ["orders", queryFilters],
+    queryKey: [...journalKeys.orders, queryFilters],
     queryFn: () => listOrders({ data: queryFilters }),
+    staleTime: 15_000,
   });
   const kpisQuery = useQuery({
-    queryKey: ["kpis", queryFilters],
+    queryKey: [...journalKeys.kpis, queryFilters],
     queryFn: () => getSummaryKpis({ data: queryFilters }),
+    staleTime: 15_000,
   });
 
   const kpis = kpisQuery.data;

@@ -4,43 +4,23 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getLookups } from "@/services/lookups";
-import type { Lookups, AppSettings } from "@/lib/types";
+import { DEFAULT_SETTINGS, type Lookups, type AppSettings } from "@/lib/types";
 import { t, type Dictionary } from "@/lib/i18n";
-import { applyTheme } from "@/lib/theme";
+import { applyAppearance, applyTheme } from "@/lib/theme";
+import { applyWallpaper } from "@/lib/wallpaper";
 import { journalKeys } from "@/lib/query";
-
-export type OrderSheet =
-  | { mode: "closed" }
-  | { mode: "create" }
-  | { mode: "edit"; orderId: string }
-  | { mode: "details"; orderId: string };
 
 interface AppState {
   lookups: Lookups | undefined;
   settings: AppSettings;
   copy: Dictionary;
   loading: boolean;
-  sheet: OrderSheet;
-  searchFocusToken: number;
-  openCreate: () => void;
-  openEdit: (orderId: string) => void;
-  openDetails: (orderId: string) => void;
-  closeSheet: () => void;
-  focusSearch: () => void;
   refresh: () => Promise<void>;
 }
-
-const defaultSettings: AppSettings = {
-  language: "ru",
-  currency: "RUB",
-  dateFormat: "dd.MM.yyyy",
-  theme: "light",
-};
 
 const AppStateContext = createContext<AppState | null>(null);
 
@@ -49,24 +29,23 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const lookupsQuery = useQuery({
     queryKey: journalKeys.lookups,
     queryFn: () => getLookups(),
+    staleTime: 60_000,
   });
-  const [sheet, setSheet] = useState<OrderSheet>({ mode: "closed" });
-  const [searchFocusToken, setSearchFocusToken] = useState(0);
 
-  const settings = lookupsQuery.data?.settings ?? defaultSettings;
+  const settings = lookupsQuery.data?.settings ?? DEFAULT_SETTINGS;
 
   useEffect(() => {
-    applyTheme(settings.theme);
+    applyAppearance(settings);
     if (settings.theme !== "system") return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => applyTheme("system");
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
-  }, [settings.theme]);
+  }, [settings]);
 
   useEffect(() => {
-    document.documentElement.lang = settings.language;
-  }, [settings.language]);
+    return () => applyWallpaper("none");
+  }, []);
 
   const refresh = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: journalKeys.lookups });
@@ -78,16 +57,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       settings,
       copy: t(settings.language),
       loading: lookupsQuery.isLoading,
-      sheet,
-      searchFocusToken,
-      openCreate: () => setSheet({ mode: "create" }),
-      openEdit: (orderId) => setSheet({ mode: "edit", orderId }),
-      openDetails: (orderId) => setSheet({ mode: "details", orderId }),
-      closeSheet: () => setSheet({ mode: "closed" }),
-      focusSearch: () => setSearchFocusToken((n) => n + 1),
       refresh,
     }),
-    [lookupsQuery.data, lookupsQuery.isLoading, settings, sheet, searchFocusToken, refresh],
+    [lookupsQuery.data, lookupsQuery.isLoading, settings, refresh],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

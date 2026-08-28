@@ -12,7 +12,7 @@ import {
   type AnalyticsOrder,
 } from "@/lib/calculations/analytics";
 import type { AnalyticsKpis, DoctorSort } from "@/lib/types";
-import { iso, ORDER_SELECT, type OrderRow } from "./db-map";
+import { iso, type OrderRow } from "./db-map";
 import { loadItems } from "./order-query";
 import { userDb } from "./scope";
 import type { Sql } from "@/lib/db";
@@ -39,12 +39,12 @@ async function loadAnalyticsOrders(
       `exists (select 1 from order_items oi where oi.order_id = o.id and oi.user_id = $1 and oi.work_type_id = $${params.length})`,
     );
   }
-  const rows = await sql.query<OrderRow>(
-    `select ${ORDER_SELECT}
+  const rows = await sql.query<
+    Pick<OrderRow, "id" | "doctor_id" | "doctor_name" | "created_at">
+  >(
+    `select o.id, o.doctor_id, d.name as doctor_name, o.created_at
      from orders o
      join doctors d on d.id = o.doctor_id and d.user_id = o.user_id
-     join patients p on p.id = o.patient_id and p.user_id = o.user_id
-     left join colors c on c.id = o.color_id and c.user_id = o.user_id
      where ${where.join(" and ")}`,
     params,
   );

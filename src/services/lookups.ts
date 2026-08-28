@@ -1,17 +1,23 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
-import type { AppSettings, CurrencyCode, DateFormat, Language, Lookups, Theme } from "@/lib/types";
-import { THEMES } from "@/lib/types";
+import {
+  DEFAULT_SETTINGS,
+  THEMES,
+  WALLPAPERS,
+  type AppSettings,
+  type CurrencyCode,
+  type DateFormat,
+  type Language,
+  type Lookups,
+  type Theme,
+  type Wallpaper,
+} from "@/lib/types";
+import { parseWallpaperOpacity } from "@/lib/wallpaper";
 import { mapColor, mapDoctor, mapWorkType, type ColorRow, type DoctorRow, type WorkTypeRow } from "./db-map";
 import { userDb } from "./scope";
 import type { Sql } from "@/lib/db";
 
-const defaultSettings: AppSettings = {
-  language: "ru",
-  currency: "RUB",
-  dateFormat: "dd.MM.yyyy",
-  theme: "light",
-};
+const defaultSettings: AppSettings = DEFAULT_SETTINGS;
 
 export async function loadSettings(sql: Sql, userId: string): Promise<AppSettings> {
   const rows = await sql.query<{ key: string; value: string }>(
@@ -24,6 +30,10 @@ export async function loadSettings(sql: Sql, userId: string): Promise<AppSetting
     currency: (map.currency as CurrencyCode) || defaultSettings.currency,
     dateFormat: (map.dateFormat as DateFormat) || defaultSettings.dateFormat,
     theme: THEMES.includes(map.theme as Theme) ? (map.theme as Theme) : defaultSettings.theme,
+    wallpaper: WALLPAPERS.includes(map.wallpaper as Wallpaper)
+      ? (map.wallpaper as Wallpaper)
+      : defaultSettings.wallpaper,
+    wallpaperOpacity: parseWallpaperOpacity(map.wallpaperOpacity),
   };
 }
 

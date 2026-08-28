@@ -8,7 +8,9 @@ export async function seedCatalog(sql: Sql, userId: string): Promise<void> {
       ($1, 'language', 'ru'),
       ($1, 'currency', 'RUB'),
       ($1, 'dateFormat', 'dd.MM.yyyy'),
-      ($1, 'theme', 'light')
+      ($1, 'theme', 'light'),
+      ($1, 'wallpaper', 'none'),
+      ($1, 'wallpaperOpacity', '35')
      on conflict (user_id, key) do nothing`,
     [userId],
   );

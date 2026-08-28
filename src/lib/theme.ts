@@ -1,4 +1,5 @@
-import type { Theme } from "./types.ts";
+import type { AppSettings, Theme } from "./types.ts";
+import { applyWallpaper } from "./wallpaper.ts";
 
 const DARK_THEMES = new Set<Theme>(["dark", "graphite", "midnight"]);
 
@@ -13,4 +14,12 @@ export function applyTheme(theme: Theme) {
   const resolved = resolveTheme(theme, prefersDark);
   root.dataset.theme = resolved;
   root.classList.toggle("dark", DARK_THEMES.has(resolved));
+}
+
+export function applyAppearance(
+  settings: Pick<AppSettings, "theme" | "wallpaper" | "wallpaperOpacity" | "language">,
+) {
+  applyTheme(settings.theme);
+  applyWallpaper(settings.wallpaper, settings.wallpaperOpacity);
+  document.documentElement.lang = settings.language;
 }
