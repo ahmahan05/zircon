@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAppState } from "@/features/app-state";
+import { useOrderSheet } from "@/features/orders/order-sheet";
 import type { OrderFilters, PeriodKey } from "@/lib/types";
 import { periodRange } from "@/lib/period";
 
@@ -58,7 +59,8 @@ export function FilterBar({
   value: FilterState;
   onChange: (next: FilterState) => void;
 }) {
-  const { copy, lookups, searchFocusToken } = useAppState();
+  const { copy, lookups } = useAppState();
+  const searchFocusToken = useOrderSheet((s) => s.searchFocusToken);
   const searchRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState(value.q);
   const valueRef = useRef(value);
@@ -67,6 +69,10 @@ export function FilterBar({
   useEffect(() => {
     if (searchFocusToken > 0) searchRef.current?.focus();
   }, [searchFocusToken]);
+
+  useEffect(() => {
+    setQ(value.q);
+  }, [value.q]);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
