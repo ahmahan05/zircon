@@ -4,6 +4,7 @@ import { BarChart3, ClipboardList, LogOut, Settings, Users } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { useAppState } from "@/features/app-state";
 import { OrderWorkspace } from "@/features/orders/order-workspace";
+import { useOrderSheet } from "@/features/orders/order-sheet";
 import { signOutOfJournal } from "@/features/auth/session";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -16,7 +17,9 @@ const nav = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { copy, openCreate, focusSearch } = useAppState();
+  const { copy } = useAppState();
+  const openCreate = useOrderSheet((s) => s.openCreate);
+  const focusSearch = useOrderSheet((s) => s.focusSearch);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -42,8 +45,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [openCreate, focusSearch]);
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-sidebar md:flex md:flex-col">
+    <div className="app-shell min-h-dvh bg-background text-foreground">
+      <aside className="app-sidebar fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-border bg-sidebar md:flex md:flex-col">
         <div className="flex items-center gap-2.5 px-5 py-6">
           <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -93,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-sidebar/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom)]">
+      <nav className="app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-border bg-sidebar/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-4">
           {nav.map((item) => {
             const active =
